@@ -29,18 +29,41 @@ def _expect(expected_type: TokenType, tokens: List[Token]) -> Token:
     return tok
 
 
+_UOP_TABLE: Dict[TokenType, UnaryOpType] = {
+    TokenType.MINUS_SIGN: UnaryOpType.NEGATION,
+    TokenType.TILDE: UnaryOpType.COMPLEMENT,
+    TokenType.EXCLAMATION: UnaryOpType.NOT,
+}
+_BINOP_TABLE: dict[TokenType, BinaryOpType] = {
+    TokenType.PLUS_SIGN: BinaryOpType.ADD,
+    TokenType.MINUS_SIGN: BinaryOpType.SUBTRACT,
+    TokenType.ASTERISK: BinaryOpType.MULTIPLY,
+    TokenType.FORWARD_SLASH: BinaryOpType.DIVIDE,
+    TokenType.PERCENT_SIGN: BinaryOpType.REMAINDER,
+    TokenType.AMPERSAND: BinaryOpType.BITWISE_AND,
+    TokenType.VERTICAL_BAR: BinaryOpType.BITWISE_OR,
+    TokenType.CARET: BinaryOpType.BITWISE_XOR,
+    TokenType.L_SHIFT: BinaryOpType.L_SHIFT,
+    TokenType.R_SHIFT: BinaryOpType.R_SHIFT,
+    TokenType.DOUBLE_AMPERSAND: BinaryOpType.LOGICAL_AND,
+    TokenType.DOUBLE_VERTICAL_BAR: BinaryOpType.LOGICAL_OR,
+    TokenType.DOUBLE_EQUAL_SIGNS: BinaryOpType.EQUAL,
+    TokenType.NOT_EQUAL: BinaryOpType.NOT_EQUAL,
+    TokenType.LESS_THAN: BinaryOpType.LESS_THAN,
+    TokenType.LESS_THAN_OR_EQUAL: BinaryOpType.LESS_THAN_OR_EQUAL,
+    TokenType.GREATER_THAN: BinaryOpType.GREATER_THAN,
+    TokenType.GREATER_THAN_OR_EQUAL: BinaryOpType.GREATER_THAN_OR_EQUAL,
+}
+
+
 def _parse_uop(tokens: List[Token]) -> UnaryOpType:
-    _UOP_TABLE: Dict[TokenType, UnaryOpType] = {
-        TokenType.MINUS_SIGN: UnaryOpType.NEGATION,
-        TokenType.TILDE: UnaryOpType.COMPLEMENT,
-    }
     if not tokens:
         raise SyntaxError("Unexpected end of input.")
 
     tok = tokens.pop(0)
     spec = _UOP_TABLE.get(tok.type)
     if spec is None:
-        raise SyntaxError(f"Unknown binary operator: {tok!r}")
+        raise SyntaxError(f"Unknown unary operator: {tok!r}")
 
     return spec
 
@@ -54,7 +77,7 @@ def _parse_factor(tokens: List[Token]):
     if tok.type == TokenType.CONSTANT:
         tokens.pop(0)
         return Constant(int(tok.value))
-    elif tok.type == TokenType.MINUS_SIGN or tok.type == TokenType.TILDE:
+    elif tok.type in _UOP_TABLE.keys():
         op = _parse_uop(tokens)
         inner_exp = _parse_factor(tokens)
         return UnaryOp(op, inner_exp)
@@ -68,18 +91,6 @@ def _parse_factor(tokens: List[Token]):
 
 
 def _parse_binop(tokens: List[Token]) -> BinaryOpType:
-    _BINOP_TABLE: dict[TokenType, BinaryOpType] = {
-        TokenType.PLUS_SIGN: BinaryOpType.ADD,
-        TokenType.MINUS_SIGN: BinaryOpType.SUBTRACT,
-        TokenType.ASTERISK: BinaryOpType.MULTIPLY,
-        TokenType.FORWARD_SLASH: BinaryOpType.DIVIDE,
-        TokenType.PERCENT_SIGN: BinaryOpType.REMAINDER,
-        TokenType.AMPERSAND: BinaryOpType.BITWISE_AND,
-        TokenType.VERTICAL_BAR: BinaryOpType.BITWISE_OR,
-        TokenType.CARET: BinaryOpType.BITWISE_XOR,
-        TokenType.L_SHIFT: BinaryOpType.L_SHIFT,
-        TokenType.R_SHIFT: BinaryOpType.R_SHIFT,
-    }
     if not tokens:
         raise SyntaxError("Unexpected end of input: expected a binary operator")
 
@@ -107,11 +118,25 @@ def _precedence(tok: Token) -> int:
         case TokenType.AMPERSAND:
             return 40
 
-        case TokenType.CARET:
+        case (
+            TokenType.CARET
+            | TokenType.LESS_THAN
+            | TokenType.LESS_THAN_OR_EQUAL
+            | TokenType.GREATER_THAN
+            | TokenType.GREATER_THAN_OR_EQUAL
+        ):
             return 35
 
-        case TokenType.VERTICAL_BAR:
+        case (
+            TokenType.VERTICAL_BAR | TokenType.DOUBLE_EQUAL_SIGNS | TokenType.NOT_EQUAL
+        ):
             return 30
+
+        case TokenType.DOUBLE_AMPERSAND:
+            return 10
+
+        case TokenType.DOUBLE_VERTICAL_BAR:
+            return 5
 
         case _:
             raise SyntaxError(f"Unknown Binary Operator: {tok}")
@@ -124,22 +149,7 @@ def _parse_exp(tokens: List[Token], min_precedence) -> Expression:
     left = _parse_factor(tokens)
     tok = tokens[0]
 
-    while (
-        tok.type
-        in [
-            TokenType.PLUS_SIGN,
-            TokenType.MINUS_SIGN,
-            TokenType.ASTERISK,
-            TokenType.FORWARD_SLASH,
-            TokenType.PERCENT_SIGN,
-            TokenType.AMPERSAND,
-            TokenType.VERTICAL_BAR,
-            TokenType.CARET,
-            TokenType.L_SHIFT,
-            TokenType.R_SHIFT,
-        ]
-        and _precedence(tok) >= min_precedence
-    ):
+    while tok.type in _BINOP_TABLE.keys() and _precedence(tok) >= min_precedence:
         op = _parse_binop(tokens)
         right = _parse_exp(tokens, _precedence(tok) + 1)
         left = BinaryOp(op, left, right)

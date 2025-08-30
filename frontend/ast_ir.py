@@ -27,6 +27,7 @@ class Program(NamedTuple):
 class UnaryOpType(Enum):
     NEGATION = auto()
     COMPLEMENT = auto()
+    NOT = auto()
 
 
 class UnaryOp(NamedTuple):
@@ -45,6 +46,14 @@ class BinaryOpType(Enum):
     BITWISE_XOR = auto()
     L_SHIFT = auto()
     R_SHIFT = auto()
+    LOGICAL_AND = auto()
+    LOGICAL_OR = auto()
+    EQUAL = auto()
+    NOT_EQUAL = auto()
+    LESS_THAN = auto()
+    LESS_THAN_OR_EQUAL = auto()
+    GREATER_THAN = auto()
+    GREATER_THAN_OR_EQUAL = auto()
 
 
 class BinaryOp(NamedTuple):
