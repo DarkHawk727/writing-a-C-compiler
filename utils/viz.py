@@ -4,7 +4,13 @@ from middle.tacky_ir import (
     TACKYBinaryOp,
     TACKYBinaryOpType,
     TACKYConstant,
+    TACKYCopy,
     TACKYFunction,
+    TACKYInstruction,
+    TACKYJump,
+    TACKYJumpIfNotZero,
+    TACKYJumpIfZero,
+    TACKYLabel,
     TACKYProgram,
     TACKYReturn,
     TACKYUnaryOp,
@@ -119,11 +125,20 @@ def pretty_tacky(obj: TACKYProgram | TACKYFunction, show_return: bool = True) ->
         TACKYBinaryOpType.BITWISE_XOR: "^",
         TACKYBinaryOpType.L_SHIFT: "<<",
         TACKYBinaryOpType.R_SHIFT: ">>",
+        TACKYBinaryOpType.LOGICAL_AND: "&&",
+        TACKYBinaryOpType.LOGICAL_OR: "||",
+        TACKYBinaryOpType.EQUAL: "==",
+        TACKYBinaryOpType.NOT_EQUAL: "!=",
+        TACKYBinaryOpType.LESS_THAN: "<",
+        TACKYBinaryOpType.LESS_THAN_OR_EQUAL: "<=",
+        TACKYBinaryOpType.GREATER_THAN: ">",
+        TACKYBinaryOpType.GREATER_THAN_OR_EQUAL: ">=",
     }
 
     _UNARY_OP_MAP: Dict[TACKYUnaryOpType, str] = {
         TACKYUnaryOpType.COMPLEMENT: "~",
         TACKYUnaryOpType.NEGATION: "-",
+        TACKYUnaryOpType.NOT: "!"
     }
     if isinstance(obj, TACKYProgram):
         fn = obj.function_definition
