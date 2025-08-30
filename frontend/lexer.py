@@ -26,6 +26,15 @@ TOKEN_REGEXES = {
     TokenType.CARET: re.compile(r"\^"),
     TokenType.L_SHIFT: re.compile(r"<<"),
     TokenType.R_SHIFT: re.compile(r">>"),
+    TokenType.EXCLAMATION: re.compile(r"!"),
+    TokenType.DOUBLE_AMPERSAND: re.compile(r"&&"),
+    TokenType.DOUBLE_VERTICAL_BAR: re.compile(r"\|\|"),
+    TokenType.DOUBLE_EQUAL_SIGNS: re.compile(r"=="),
+    TokenType.NOT_EQUAL: re.compile(r"!="),
+    TokenType.LESS_THAN_OR_EQUAL: re.compile(r"<="),
+    TokenType.GREATER_THAN_OR_EQUAL: re.compile(r">="),
+    TokenType.LESS_THAN: re.compile(r"<"),
+    TokenType.GREATER_THAN: re.compile(r">"),
 }
 
 

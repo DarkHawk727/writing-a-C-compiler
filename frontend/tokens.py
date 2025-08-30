@@ -25,6 +25,15 @@ class TokenType(Enum):
     CARET = auto()
     L_SHIFT = auto()
     R_SHIFT = auto()
+    EXCLAMATION = auto()
+    DOUBLE_AMPERSAND = auto()
+    DOUBLE_VERTICAL_BAR = auto()
+    DOUBLE_EQUAL_SIGNS = auto()
+    NOT_EQUAL = auto()
+    LESS_THAN = auto()
+    GREATER_THAN = auto()
+    LESS_THAN_OR_EQUAL = auto()
+    GREATER_THAN_OR_EQUAL = auto()
 
 
 Token = NamedTuple("Token", [("type", TokenType), ("value", "str")])
