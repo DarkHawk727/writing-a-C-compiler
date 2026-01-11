@@ -113,7 +113,6 @@ def _val(v: TACKYValue) -> str:
 
 
 def pretty_tacky(obj: TACKYProgram | TACKYFunction, show_return: bool = True) -> str:
-    """Return a compact three-address listing of a TACKYProgram or TACKYFunction."""
     _BINARY_OP_MAP: Dict[TACKYBinaryOpType, str] = {
         TACKYBinaryOpType.ADD: "+",
         TACKYBinaryOpType.SUBTRACT: "-",
@@ -125,8 +124,7 @@ def pretty_tacky(obj: TACKYProgram | TACKYFunction, show_return: bool = True) ->
         TACKYBinaryOpType.BITWISE_XOR: "^",
         TACKYBinaryOpType.L_SHIFT: "<<",
         TACKYBinaryOpType.R_SHIFT: ">>",
-        TACKYBinaryOpType.LOGICAL_AND: "&&",
-        TACKYBinaryOpType.LOGICAL_OR: "||",
+        # Note: && and || should not generally appear here if you lowered them to Jumpes
         TACKYBinaryOpType.EQUAL: "==",
         TACKYBinaryOpType.NOT_EQUAL: "!=",
         TACKYBinaryOpType.LESS_THAN: "<",
@@ -138,16 +136,24 @@ def pretty_tacky(obj: TACKYProgram | TACKYFunction, show_return: bool = True) ->
     _UNARY_OP_MAP: Dict[TACKYUnaryOpType, str] = {
         TACKYUnaryOpType.COMPLEMENT: "~",
         TACKYUnaryOpType.NEGATION: "-",
-        TACKYUnaryOpType.NOT: "!"
+        TACKYUnaryOpType.NOT: "!",
     }
-    if isinstance(obj, TACKYProgram):
-        fn = obj.function_definition
-    else:
-        fn = obj
+
+    fn = obj.function_definition if isinstance(obj, TACKYProgram) else obj
 
     lines: List[str] = []
     for instr in fn.instructions:
-        if isinstance(instr, TACKYUnaryOp):
+        if isinstance(instr, TACKYLabel):
+            lines.append(f"{instr.identifier}:")
+        elif isinstance(instr, TACKYCopy):
+            lines.append(f"{_val(instr.dst)} = {_val(instr.src)}")
+        elif isinstance(instr, TACKYJump):
+            lines.append(f"goto {instr.target}")
+        elif isinstance(instr, TACKYJumpIfZero):
+            lines.append(f"ifz {_val(instr.condition)} -> {instr.target}")
+        elif isinstance(instr, TACKYJumpIfNotZero):
+            lines.append(f"ifnz {_val(instr.condition)} -> {instr.target}")
+        elif isinstance(instr, TACKYUnaryOp):
             dst = _val(instr.destination)
             src = _val(instr.source)
             lines.append(f"{dst} = {_UNARY_OP_MAP[instr.unary_operator]}{src}")
@@ -155,7 +161,8 @@ def pretty_tacky(obj: TACKYProgram | TACKYFunction, show_return: bool = True) ->
             dst = _val(instr.destination)
             s1 = _val(instr.source_1)
             s2 = _val(instr.source_2)
-            lines.append(f"{dst} = {s1} {_BINARY_OP_MAP[instr.binary_operator]} {s2}")
+            op = _BINARY_OP_MAP[instr.binary_operator]
+            lines.append(f"{dst} = {s1} {op} {s2}")
         elif isinstance(instr, TACKYReturn) and show_return:
             lines.append(f"return {_val(instr.value)}")
         else:

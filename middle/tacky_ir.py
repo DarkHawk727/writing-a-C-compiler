@@ -18,6 +18,7 @@ TACKYValue: TypeAlias = TACKYConstant | TACKYVariable
 class TACKYUnaryOpType(Enum):
     COMPLEMENT = auto()
     NEGATION = auto()
+    NOT = auto()
 
 
 class TACKYUnaryOp(NamedTuple):
@@ -37,6 +38,14 @@ class TACKYBinaryOpType(Enum):
     BITWISE_XOR = auto()
     L_SHIFT = auto()
     R_SHIFT = auto()
+    LOGICAL_AND = auto()
+    LOGICAL_OR = auto()
+    EQUAL = auto()
+    NOT_EQUAL = auto()
+    LESS_THAN = auto()
+    LESS_THAN_OR_EQUAL = auto()
+    GREATER_THAN = auto()
+    GREATER_THAN_OR_EQUAL = auto()
 
 
 class TACKYBinaryOp(NamedTuple):
@@ -50,7 +59,39 @@ class TACKYReturn(NamedTuple):
     value: TACKYValue
 
 
-TACKYInstruction: TypeAlias = TACKYReturn | TACKYUnaryOp
+class TACKYCopy(NamedTuple):
+    src: TACKYValue
+    dst: TACKYValue
+
+
+class TACKYJump(NamedTuple):
+    target: str
+
+
+class TACKYJumpIfZero(NamedTuple):
+    condition: TACKYValue
+    target: str
+
+
+class TACKYJumpIfNotZero(NamedTuple):
+    condition: TACKYValue
+    target: str
+
+
+class TACKYLabel(NamedTuple):
+    identifier: str
+
+
+TACKYInstruction: TypeAlias = (
+    TACKYReturn
+    | TACKYUnaryOp
+    | TACKYBinaryOp
+    | TACKYCopy
+    | TACKYJump
+    | TACKYJumpIfZero
+    | TACKYJumpIfNotZero
+    | TACKYLabel
+)
 
 
 class TACKYFunction(NamedTuple):

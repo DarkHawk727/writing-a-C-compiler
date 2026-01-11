@@ -55,8 +55,20 @@ class AssemblyUnary(NamedTuple):
     operand: Operand
 
 
-class AssemblyRegister(NamedTuple):
-    reg: Literal["AX", "R10", "DX", "R10", "R11"]
+class AssemblyConditionCode(Enum):
+    E = auto()
+    NE = auto()
+    G = auto()
+    GE = auto()
+    L = auto()
+    LE = auto()
+
+
+class AssemblyRegister(Enum):
+    AX = auto()
+    R10 = auto()
+    DX = auto()
+    R11 = auto()
 
 
 class AssemblyStack(NamedTuple):
@@ -70,6 +82,29 @@ class AssemblyPseudoRegister(NamedTuple):
 Operand: TypeAlias = (
     AssemblyImmediate | AssemblyRegister | AssemblyPseudoRegister | AssemblyStack
 )
+
+
+class AssemblyCompare(NamedTuple):
+    operand_1: Operand
+    operand_2: Operand
+
+
+class AssemblyJump(NamedTuple):
+    identifier: str
+
+
+class AssemblyJumpConditionCode(NamedTuple):
+    cond_code: AssemblyConditionCode
+    identifier: str
+
+
+class AssemblySetConditionCode(NamedTuple):
+    cond_code: AssemblyConditionCode
+    operand_1: Operand
+
+
+class AssemblyLabel(NamedTuple):
+    identifier: str
 
 
 class AssemblyBinaryOpType(Enum):
