@@ -42,6 +42,8 @@ def lex(prog: str) -> List[Token]:
     tokens = []
     while prog:
         prog = prog.lstrip()
+        if not prog:
+            break
         if prog.startswith("//"):
             newline = prog.find("\n")
             if newline == -1:

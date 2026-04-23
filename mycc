@@ -137,8 +137,9 @@ def run_pipeline(source: Path, stage: str, viz_mode: str) -> int:
 
     if stage == "compile":
         out_path = source.with_suffix(".s")
+        assembly_lines = emit_assembly(get_asm_ir())
         with out_path.open("w") as out:
-            for instruction in emit_assembly(get_asm_ir()):
+            for instruction in assembly_lines:
                 out.write(instruction + "\n")
         return 0
 
