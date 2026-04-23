@@ -5,17 +5,32 @@ from src.backend.assembly_ir import (
     AssemblyBinaryOp,
     AssemblyBinaryOpType,
     AssemblyCdq,
+    AssemblyCompare,
+    AssemblyConditionCode,
     AssemblyFunction,
     AssemblyIDiv,
     AssemblyImmediate,
+    AssemblyJump,
+    AssemblyJumpConditionCode,
+    AssemblyLabel,
     AssemblyMov,
     AssemblyProgram,
     AssemblyRegister,
     AssemblyRet,
+    AssemblySetConditionCode,
     AssemblyStack,
     AssemblyUnary,
     AssemblyUnaryOpType,
 )
+
+CONDITION_CODE_SUFFIXES = {
+    AssemblyConditionCode.E: "e",
+    AssemblyConditionCode.NE: "ne",
+    AssemblyConditionCode.G: "g",
+    AssemblyConditionCode.GE: "ge",
+    AssemblyConditionCode.L: "l",
+    AssemblyConditionCode.LE: "le",
+}
 
 
 def emit_assembly(node: AssemblyProgram | AssemblyFunction) -> List[str]:
@@ -100,6 +115,26 @@ def emit_assembly(node: AssemblyProgram | AssemblyFunction) -> List[str]:
 
         case AssemblyImmediate(val):
             return [f"${val}"]
+
+        case AssemblyCompare(operand_1, operand_2):
+            operand_1_assembly = emit_assembly(operand_1)[0]
+            operand_2_assembly = emit_assembly(operand_2)[0]
+            return [f"\tcmpl\t{operand_2_assembly}, {operand_1_assembly}"]
+
+        case AssemblyJump(label):
+            return [f"\tjmp\t.L{label.identifier}"]
+
+        case AssemblyJumpConditionCode(cond_code, label):
+            suffix = CONDITION_CODE_SUFFIXES[cond_code]
+            return [f"\tj{suffix}\t.L{label.identifier}"]
+
+        case AssemblySetConditionCode(cond_code, operand):
+            suffix = CONDITION_CODE_SUFFIXES[cond_code]
+            operand_assembly = emit_assembly(operand)[0]
+            return [f"\tset{suffix}\t{operand_assembly}"]
+
+        case AssemblyLabel(label):
+            return [f".L{label.identifier}:"]
 
         case _:
             raise NotImplementedError(f"No emit logic for {node}")
