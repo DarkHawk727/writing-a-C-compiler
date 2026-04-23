@@ -58,8 +58,7 @@ def main():
         return
 
     with open(args.file, "r") as f:
-        # Keep semantics consistent with your original stripping behavior.
-        program = "".join([line.strip() for line in f.readlines()])
+        program = f.read()
 
     # Common pipeline pieces (so we don't recompute)
     tokens = None

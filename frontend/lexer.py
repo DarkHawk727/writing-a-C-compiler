@@ -42,6 +42,18 @@ def lex(prog: str) -> List[Token]:
     tokens = []
     while prog:
         prog = prog.lstrip()
+        if prog.startswith("//"):
+            newline = prog.find("\n")
+            if newline == -1:
+                break
+            prog = prog[newline + 1 :]
+            continue
+        if prog.startswith("/*"):
+            end_comment = prog.find("*/", 2)
+            if end_comment == -1:
+                raise ValueError("Unterminated block comment")
+            prog = prog[end_comment + 2 :]
+            continue
         match_found = False
         longest_match = 0
         matched_type = None

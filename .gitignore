@@ -4,3 +4,4 @@
 __pycache__
 textbook
 .ruff_cache
+tests

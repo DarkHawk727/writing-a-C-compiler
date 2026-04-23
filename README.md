@@ -59,6 +59,18 @@ options:
                         Select the compiler stage to run (default: compile)
 ```
 
+## Book Test Suite
+
+The upstream test suite is cloned into `tests/`. Use the root-level adapter script
+to run it against this compiler:
+
+```text
+python tests/test_compiler mycc.cmd --chapter 1 --latest-only
+```
+
+On WSL/macOS/Linux, run `chmod +x mycc` once and use `./mycc` instead of
+`mycc.cmd`.
+
 ## TACKY
 
 This compiler uses an intermediate representation inspired by Three-Address Code (TAC) called TACKY. TACKY works by breaking expressions down into simple statements of the form: `tmp_x = y (op) z` where `y` and `z` are either TACKY variables (denotes `tmp_a`) or numbers. For example the TACKY for `(10 - (6 % 4) * 3 + 8 / 2) % 5` is:

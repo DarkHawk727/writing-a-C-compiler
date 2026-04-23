@@ -85,14 +85,14 @@ def emit_assembly(node: AssemblyProgram | AssemblyFunction) -> List[str]:
         case AssemblyAllocateStack(v):
             return [f"\tsubq\t${abs(v)}, %rsp"]
 
-        case AssemblyRegister(reg):
-            if reg == "AX":
+        case AssemblyRegister() as reg:
+            if reg == AssemblyRegister.AX:
                 return ["%eax"]
-            elif reg == "R10":
+            elif reg == AssemblyRegister.R10:
                 return ["%r10d"]
-            elif reg == "R11":
+            elif reg == AssemblyRegister.R11:
                 return ["%r11d"]
-            elif reg == "DX":
+            elif reg == AssemblyRegister.DX:
                 return ["%edx"]
 
         case AssemblyStack(offset):

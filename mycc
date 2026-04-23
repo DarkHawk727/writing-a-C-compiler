@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Adapter from the book test-suite interface to this compiler."""
+
+from __future__ import annotations
+
+import platform
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent
+COMPILER = ROOT / "main.py"
+
+STAGE_FLAGS = {
+    "--lex": "lex",
+    "--parse": "parse",
+    "--validate": "parse",
+    "--tacky": "tacky",
+    "--codegen": "codegen",
+}
+
+IGNORED_FLAGS = {
+    "--fold-constants",
+    "--eliminate-unreachable-code",
+    "--propagate-copies",
+    "--eliminate-dead-stores",
+}
+
+
+def usage() -> int:
+    print("usage: mycc [--lex|--parse|--validate|--tacky|--codegen] [-S|-c] file.c")
+    return 2
+
+
+def normalize_assembly_for_host(assembly_path: Path) -> None:
+    """The compiler currently emits Mach-O-style leading underscores."""
+    if platform.system() == "Darwin":
+        return
+
+    asm = assembly_path.read_text()
+    asm = re.sub(r"(?m)^(\s*\.globl\s+)_([A-Za-z_]\w*)\s*$", r"\1\2", asm)
+    asm = re.sub(r"(?m)^_([A-Za-z_]\w*):\s*$", r"\1:", asm)
+    assembly_path.write_text(asm)
+
+
+def run_compiler(source: Path, stage: str) -> int:
+    result = subprocess.run(
+        [sys.executable, str(COMPILER), str(source), "--stage", stage],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    if result.stdout:
+        print(result.stdout, end="")
+    if result.stderr:
+        print(result.stderr, end="", file=sys.stderr)
+    return result.returncode
+
+
+def main(argv: list[str]) -> int:
+    stage: str | None = None
+    stop_after_assembly = False
+    stop_after_object = False
+    gcc_options: list[str] = []
+    source: Path | None = None
+
+    for arg in argv:
+        if arg in STAGE_FLAGS:
+            stage = STAGE_FLAGS[arg]
+        elif arg in IGNORED_FLAGS:
+            continue
+        elif arg == "-S":
+            stop_after_assembly = True
+        elif arg == "-c":
+            stop_after_object = True
+        elif arg.startswith("-"):
+            gcc_options.append(arg)
+        else:
+            source = Path(arg)
+
+    if source is None:
+        return usage()
+
+    if stage is not None:
+        return run_compiler(source, stage)
+
+    rc = run_compiler(source, "compile")
+    if rc != 0:
+        return rc
+
+    assembly_path = source.with_suffix(".s")
+    normalize_assembly_for_host(assembly_path)
+
+    if stop_after_assembly:
+        return 0
+
+    if stop_after_object:
+        output_path = source.with_suffix(".o")
+        gcc_args = ["gcc", "-c", str(assembly_path), "-o", str(output_path)]
+    else:
+        output_path = source.with_suffix("")
+        gcc_args = ["gcc", str(assembly_path), "-o", str(output_path), *gcc_options]
+
+    result = subprocess.run(gcc_args, check=False, text=True, capture_output=True)
+    if result.stdout:
+        print(result.stdout, end="")
+    if result.stderr:
+        print(result.stderr, end="", file=sys.stderr)
+    return result.returncode
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
