@@ -1,6 +1,6 @@
 from typing import Any, List, TypeAlias, cast
 
-from backend.assembly_ir import (
+from src.backend.assembly_ir import (
     AssemblyAllocateStack,
     AssemblyBinaryOp,
     AssemblyBinaryOpType,
@@ -26,7 +26,7 @@ from backend.assembly_ir import (
     OffsetAllocator,
     Operand,
 )
-from middle.tacky_ir import (
+from src.middle.tacky_ir import (
     TACKYBinaryOp,
     TACKYBinaryOpType,
     TACKYConstant,

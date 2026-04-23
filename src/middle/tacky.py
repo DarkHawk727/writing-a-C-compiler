@@ -1,7 +1,7 @@
 from itertools import count
 from typing import Any, Dict, List
 
-from frontend.ast_ir import (
+from src.frontend.ast_ir import (
     BinaryOp,
     BinaryOpType,
     Constant,
@@ -10,7 +10,7 @@ from frontend.ast_ir import (
     UnaryOp,
     UnaryOpType,
 )
-from middle.tacky_ir import (
+from src.middle.tacky_ir import (
     TACKYBinaryOp,
     TACKYBinaryOpType,
     TACKYConstant,

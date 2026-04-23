@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, NamedTuple
 
-from middle.tacky_ir import (
+from src.middle.tacky_ir import (
     TACKYBinaryOp,
     TACKYBinaryOpType,
     TACKYConstant,

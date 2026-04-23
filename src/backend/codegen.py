@@ -1,6 +1,6 @@
 from typing import List
 
-from backend.assembly_ir import (
+from src.backend.assembly_ir import (
     AssemblyAllocateStack,
     AssemblyBinaryOp,
     AssemblyBinaryOpType,

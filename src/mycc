@@ -10,12 +10,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-from backend.codegen import emit_assembly
-from backend.tacky2asm import convert_TACKY_to_assembly
-from frontend.lexer import lex
-from frontend.parser import parse_program
-from middle.tacky import convert_AST_to_TACKY
-from utils.viz import ast_to_mermaid, pretty_print_tree, pretty_tacky
+from src.backend.codegen import emit_assembly
+from src.backend.tacky2asm import convert_TACKY_to_assembly
+from src.frontend.lexer import lex
+from src.frontend.parser import parse_program
+from src.middle.tacky import convert_AST_to_TACKY
+from src.utils.viz import ast_to_mermaid, pretty_print_tree, pretty_tacky
 
 ROOT = Path(__file__).resolve().parent
 

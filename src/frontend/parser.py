@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from frontend.ast_ir import (
+from src.frontend.ast_ir import (
     BinaryOp,
     BinaryOpType,
     Constant,
@@ -14,7 +14,7 @@ from frontend.ast_ir import (
     UnaryOp,
     UnaryOpType,
 )
-from frontend.tokens import Token, TokenType
+from src.frontend.tokens import Token, TokenType
 
 
 # This will remove the first element of tokens and pops it off. Modifies tokens

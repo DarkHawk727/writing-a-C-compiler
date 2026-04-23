@@ -1,7 +1,7 @@
 import re
 from typing import List
 
-from frontend.tokens import Token, TokenType
+from src.frontend.tokens import Token, TokenType
 
 TOKEN_REGEXES = {
     TokenType.CONSTANT: re.compile(r"[0-9]+\b"),
