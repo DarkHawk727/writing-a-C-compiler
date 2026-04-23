@@ -46,23 +46,29 @@ flowchart TD
 ## Usage
 
 ```text
-usage: main.py [-h] [--stage {lex,parse,tacky,codegen,compile}] file
+usage: mycc [--lex|--parse|--validate|--tacky|--codegen] [--stage STAGE] [--viz pretty|mermaid] [-S|-c] file.c
 
-Compiler with stage selection
+Compiler entrypoint compatible with the book test suite
 
 positional arguments:
   file                  Input file to process
 
 options:
-  -h, --help            show this help message and exit
-  --stage {lex,parse,codegen,compile}
-                        Select the compiler stage to run (default: compile)
+  --lex/--parse/--validate/--tacky/--codegen
+                        Run only the selected intermediate stage
+  --stage STAGE          Explicit stage selector (lex|parse|tacky|codegen|compile|all)
+  --viz                  Tree visualization mode for parse/codegen output (pretty|mermaid)
+  -S                     Stop after generating assembly (.s)
+  -c                     Compile assembly to object file (.o)
 ```
 
 ## Book Test Suite
 
-The upstream test suite is cloned into `tests/`. Use the root-level adapter script
-to run it against this compiler:
+GitHub Actions reads the root-level `CHAPTER` file, clones the upstream test
+suite, and runs every chapter from 1 through that value.
+
+To run the same test suite locally, clone the upstream tests and use the
+root-level adapter script:
 
 ```text
 python tests/test_compiler mycc.cmd --chapter 1 --latest-only

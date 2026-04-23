@@ -1,0 +1,45 @@
+name: Book Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Chapters 1 through CHAPTER
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out compiler
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Read completed chapter
+        id: chapter
+        shell: bash
+        run: |
+          chapter="$(tr -d '[:space:]' < CHAPTER)"
+          if [[ ! "$chapter" =~ ^[0-9]+$ ]] || [[ "$chapter" -lt 1 ]]; then
+            echo "CHAPTER must contain a positive integer; got '$chapter'" >&2
+            exit 1
+          fi
+          echo "chapter=$chapter" >> "$GITHUB_OUTPUT"
+
+      - name: Clone upstream test suite
+        run: |
+          git clone --depth 1 https://github.com/nlsandler/writing-a-c-compiler-tests.git test-suite
+
+      - name: Run tests
+        run: |
+          chmod +x ./mycc
+          python test-suite/test_compiler ./mycc --chapter "${{ steps.chapter.outputs.chapter }}"

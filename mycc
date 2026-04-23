@@ -3,15 +3,21 @@
 
 from __future__ import annotations
 
+import os
 import platform
 import re
 import subprocess
 import sys
 from pathlib import Path
 
+from backend.codegen import emit_assembly
+from backend.tacky2asm import convert_TACKY_to_assembly
+from frontend.lexer import lex
+from frontend.parser import parse_program
+from middle.tacky import convert_AST_to_TACKY
+from utils.viz import ast_to_mermaid, pretty_print_tree, pretty_tacky
 
 ROOT = Path(__file__).resolve().parent
-COMPILER = ROOT / "main.py"
 
 STAGE_FLAGS = {
     "--lex": "lex",
@@ -28,10 +34,34 @@ IGNORED_FLAGS = {
     "--eliminate-dead-stores",
 }
 
+VALID_STAGES = {"lex", "parse", "tacky", "codegen", "compile", "all"}
+VIZ_MODES = {"pretty", "mermaid"}
+
 
 def usage() -> int:
-    print("usage: mycc [--lex|--parse|--validate|--tacky|--codegen] [-S|-c] file.c")
+    print(
+        "usage: mycc [--lex|--parse|--validate|--tacky|--codegen] "
+        "[--stage STAGE] [--viz pretty|mermaid] [-S|-c] file.c"
+    )
     return 2
+
+
+def render(obj, viz_mode: str) -> str:
+    if viz_mode == "mermaid":
+        try:
+            return ast_to_mermaid(obj)
+        except Exception:
+            return str(obj)
+
+    try:
+        return pretty_print_tree(obj)
+    except Exception:
+        return str(obj)
+
+
+def print_section(title: str, body: str) -> None:
+    print(f"\n=== {title} ===")
+    print(body)
 
 
 def normalize_assembly_for_host(assembly_path: Path) -> None:
@@ -45,18 +75,75 @@ def normalize_assembly_for_host(assembly_path: Path) -> None:
     assembly_path.write_text(asm)
 
 
-def run_compiler(source: Path, stage: str) -> int:
-    result = subprocess.run(
-        [sys.executable, str(COMPILER), str(source), "--stage", stage],
-        check=False,
-        text=True,
-        capture_output=True,
-    )
-    if result.stdout:
-        print(result.stdout, end="")
-    if result.stderr:
-        print(result.stderr, end="", file=sys.stderr)
-    return result.returncode
+def run_pipeline(source: Path, stage: str, viz_mode: str) -> int:
+    if not source.is_file():
+        print(f"Error: File '{source}' does not exist.", file=sys.stderr)
+        return 1
+
+    with source.open("r") as f:
+        program = f.read()
+
+    tokens = None
+    ast = None
+    tacky = None
+    asm_ir = None
+
+    def get_tokens():
+        nonlocal tokens
+        if tokens is None:
+            tokens = list(lex(program))
+        return tokens
+
+    def get_ast():
+        nonlocal ast
+        if ast is None:
+            ast = parse_program(get_tokens())
+        return ast
+
+    def get_tacky():
+        nonlocal tacky
+        if tacky is None:
+            tacky = convert_AST_to_TACKY(get_ast())
+        return tacky
+
+    def get_asm_ir():
+        nonlocal asm_ir
+        if asm_ir is None:
+            asm_ir = convert_TACKY_to_assembly(get_tacky())
+        return asm_ir
+
+    if stage == "lex":
+        print_section("LEX", "\n".join(map(str, get_tokens())))
+        return 0
+
+    if stage == "parse":
+        print_section("PARSE", render(get_ast(), viz_mode))
+        return 0
+
+    if stage == "tacky":
+        print_section("TACKY", pretty_tacky(get_tacky()))
+        return 0
+
+    if stage == "codegen":
+        print_section("CODEGEN (Assembly IR)", render(get_asm_ir(), viz_mode))
+        return 0
+
+    if stage == "all":
+        print_section("LEX", "\n".join(map(str, get_tokens())))
+        print_section("PARSE", render(get_ast(), viz_mode))
+        print_section("TACKY", pretty_tacky(get_tacky()))
+        print_section("CODEGEN (Assembly IR)", render(get_asm_ir(), viz_mode))
+        return 0
+
+    if stage == "compile":
+        out_path = source.with_suffix(".s")
+        with out_path.open("w") as out:
+            for instruction in emit_assembly(get_asm_ir()):
+                out.write(instruction + "\n")
+        return 0
+
+    print(f"Error: Unknown stage '{stage}'.", file=sys.stderr)
+    return 1
 
 
 def main(argv: list[str]) -> int:
@@ -65,12 +152,34 @@ def main(argv: list[str]) -> int:
     stop_after_object = False
     gcc_options: list[str] = []
     source: Path | None = None
+    viz_mode = "pretty"
 
-    for arg in argv:
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+
         if arg in STAGE_FLAGS:
             stage = STAGE_FLAGS[arg]
         elif arg in IGNORED_FLAGS:
-            continue
+            pass
+        elif arg in {"-h", "--help"}:
+            return usage()
+        elif arg == "--stage":
+            i += 1
+            if i >= len(argv):
+                return usage()
+            stage = argv[i]
+            if stage not in VALID_STAGES:
+                print(f"Error: Unknown stage '{stage}'.", file=sys.stderr)
+                return 2
+        elif arg == "--viz":
+            i += 1
+            if i >= len(argv):
+                return usage()
+            viz_mode = argv[i]
+            if viz_mode not in VIZ_MODES:
+                print(f"Error: Unknown viz mode '{viz_mode}'.", file=sys.stderr)
+                return 2
         elif arg == "-S":
             stop_after_assembly = True
         elif arg == "-c":
@@ -79,14 +188,15 @@ def main(argv: list[str]) -> int:
             gcc_options.append(arg)
         else:
             source = Path(arg)
+        i += 1
 
     if source is None:
         return usage()
 
     if stage is not None:
-        return run_compiler(source, stage)
+        return run_pipeline(source, stage, viz_mode)
 
-    rc = run_compiler(source, "compile")
+    rc = run_pipeline(source, "compile", viz_mode)
     if rc != 0:
         return rc
 
