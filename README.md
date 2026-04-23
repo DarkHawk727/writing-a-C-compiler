@@ -42,6 +42,7 @@ flowchart TD
 ## Limitations
 
 - Can only compile the simplest programs (just returns a single number)
+- Doesn't suppoort preprocessor directives, functions, variables, or any of the standard library.
 
 ## Usage
 

@@ -50,6 +50,12 @@ def lex(prog: str) -> List[Token]:
                 break
             prog = prog[newline + 1 :]
             continue
+        if prog.startswith("#"):  # Preprocessor directive
+            newline = prog.find("\n")
+            if newline == -1:
+                break
+            prog = prog[newline + 1 :]
+            continue
         if prog.startswith("/*"):
             end_comment = prog.find("*/", 2)
             if end_comment == -1:
