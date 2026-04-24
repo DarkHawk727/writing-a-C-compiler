@@ -38,5 +38,4 @@ jobs:
 
       - name: Run tests
         run: |
-          chmod +x ./src/mycc
-          python test_compiler ./src/mycc --chapter "${{ steps.chapter.outputs.chapter }}"
+          python writing-a-c-compiler-tests/test_compiler ./src/mycc --chapter "${{ steps.chapter.outputs.chapter }}"
