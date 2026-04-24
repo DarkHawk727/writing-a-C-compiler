@@ -122,11 +122,11 @@ def emit_assembly(node: AssemblyProgram | AssemblyFunction) -> List[str]:
             return [f"\tcmpl\t{operand_2_assembly}, {operand_1_assembly}"]
 
         case AssemblyJump(label):
-            return [f"\tjmp\t.L{label.identifier}"]
+            return [f"\tjmp\t.L{label}"]
 
         case AssemblyJumpConditionCode(cond_code, label):
             suffix = CONDITION_CODE_SUFFIXES[cond_code]
-            return [f"\tj{suffix}\t.L{label.identifier}"]
+            return [f"\tj{suffix}\t.L{label}"]
 
         case AssemblySetConditionCode(cond_code, operand):
             suffix = CONDITION_CODE_SUFFIXES[cond_code]
@@ -134,7 +134,7 @@ def emit_assembly(node: AssemblyProgram | AssemblyFunction) -> List[str]:
             return [f"\tset{suffix}\t{operand_assembly}"]
 
         case AssemblyLabel(label):
-            return [f".L{label.identifier}:"]
+            return [f".L{label}:"]
 
         case _:
             raise NotImplementedError(f"No emit logic for {node}")
