@@ -233,6 +233,13 @@ def _replace_pseudoregisters(assembly_func: AssemblyFunction) -> AssemblyFunctio
                         )
                     )
                     new_instructions.append(AssemblyCompare(AssemblyRegister.R11, _stackify(o1, assembly_func.offsets)))
+                else:
+                    new_instructions.append(
+                        AssemblyCompare(
+                            _stackify(o1, assembly_func.offsets),
+                            _stackify(o2, assembly_func.offsets),
+                        )
+                    )
 
             case AssemblySetConditionCode(cond_code, operand):
                 new_instructions.append(AssemblySetConditionCode(cond_code, _stackify(operand, assembly_func.offsets)))

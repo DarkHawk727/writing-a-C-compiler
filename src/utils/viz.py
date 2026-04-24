@@ -28,17 +28,55 @@ def is_primitive(x: Any) -> bool:
     return isinstance(x, (str, int, float, bool)) or x is None
 
 
+def op_symbol(x: Any) -> str | None:
+    binary_map: Dict[TACKYBinaryOpType, str] = {
+        TACKYBinaryOpType.ADD: "+",
+        TACKYBinaryOpType.SUBTRACT: "-",
+        TACKYBinaryOpType.MULTIPLY: "*",
+        TACKYBinaryOpType.DIVIDE: "/",
+        TACKYBinaryOpType.REMAINDER: "%",
+        TACKYBinaryOpType.BITWISE_AND: "&",
+        TACKYBinaryOpType.BITWISE_OR: "|",
+        TACKYBinaryOpType.BITWISE_XOR: "^",
+        TACKYBinaryOpType.L_SHIFT: "<<",
+        TACKYBinaryOpType.R_SHIFT: ">>",
+        TACKYBinaryOpType.EQUAL: "==",
+        TACKYBinaryOpType.NOT_EQUAL: "!=",
+        TACKYBinaryOpType.LESS_THAN: "<",
+        TACKYBinaryOpType.LESS_THAN_OR_EQUAL: "<=",
+        TACKYBinaryOpType.GREATER_THAN: ">",
+        TACKYBinaryOpType.GREATER_THAN_OR_EQUAL: ">=",
+    }
+    unary_map: Dict[TACKYUnaryOpType, str] = {
+        TACKYUnaryOpType.COMPLEMENT: "~",
+        TACKYUnaryOpType.NEGATION: "-",
+        TACKYUnaryOpType.NOT: "!",
+    }
+    if isinstance(x, TACKYBinaryOpType):
+        return binary_map[x]
+    if isinstance(x, TACKYUnaryOpType):
+        return unary_map[x]
+    return None
+
+
 def node_label(x: Any) -> str:
     if is_namedtuple_instance(x):
         cls = "**" + x.__class__.__name__ + "**"
-        prims = [
-            f"{f}={repr(getattr(x, f))}"
-            for f in x._fields
-            if is_primitive(getattr(x, f))
-        ]
+        prims = []
+        for f in x._fields:
+            v = getattr(x, f)
+            if is_primitive(v):
+                prims.append(f"{f}={repr(v)}")
+                continue
+            sym = op_symbol(v)
+            if sym is not None:
+                prims.append(f"{f}={repr(sym)}")
         return cls if not prims else cls + "\\n" + "\\n".join(prims)
     if is_primitive(x):
         return repr(x)
+    sym = op_symbol(x)
+    if sym is not None:
+        return repr(sym)
     return x.__class__.__name__
 
 
@@ -59,7 +97,7 @@ def ast_to_mermaid(root: Any) -> str:
         if is_namedtuple_instance(x):
             for field in x._fields:
                 val = getattr(x, field)
-                if is_primitive(val):
+                if is_primitive(val) or op_symbol(val) is not None:
                     continue
                 if isinstance(val, list):
                     hub = new_id()
