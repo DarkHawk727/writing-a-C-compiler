@@ -232,7 +232,12 @@ def _replace_pseudoregisters(assembly_func: AssemblyFunction) -> AssemblyFunctio
                             AssemblyRegister.R11,
                         )
                     )
-                    new_instructions.append(AssemblyCompare(AssemblyRegister.R11, _stackify(o1, assembly_func.offsets)))
+                    new_instructions.append(
+                        AssemblyCompare(
+                            AssemblyRegister.R11,
+                            _stackify(o1, assembly_func.offsets),
+                        )
+                    )
                 else:
                     new_instructions.append(
                         AssemblyCompare(
