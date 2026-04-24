@@ -107,7 +107,7 @@ def emit_assembly(node: AssemblyProgram | AssemblyFunction) -> List[str]:
         case AssemblyCompare(operand_1, operand_2):
             operand_1_assembly = emit_assembly(operand_1)[0]
             operand_2_assembly = emit_assembly(operand_2)[0]
-            return [f"\tcmpl\t{operand_2_assembly}, {operand_1_assembly}"]
+            return [f"\tcmpl\t{operand_1_assembly}, {operand_2_assembly}"]
 
         case AssemblyJump(label):
             return [f"\tjmp\t.L{label}"]
