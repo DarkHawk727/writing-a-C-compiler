@@ -11,6 +11,22 @@ CONDITION_CODE_SUFFIXES = {
     AssemblyConditionCode.LE: "le",
 }
 
+REG32 = {
+    AssemblyRegister.AX: r"%eax",
+    AssemblyRegister.R10: r"%r10d",
+    AssemblyRegister.R11: r"%r11d",
+    AssemblyRegister.DX: r"%edx",
+}
+
+REG8 = {
+    AssemblyRegister.AX: r"%al",
+    AssemblyRegister.R10: r"%r10b",
+    AssemblyRegister.R11: r"%r11b",
+    AssemblyRegister.DX: r"%dl",
+}
+
+def _emit_register(reg: AssemblyRegister, byte: bool = False) -> str:
+    return REG8[reg] if byte else REG32[reg]
 
 def emit_assembly(node: AssemblyProgram | AssemblyFunction) -> List[str]:
     match node:
@@ -80,14 +96,7 @@ def emit_assembly(node: AssemblyProgram | AssemblyFunction) -> List[str]:
             return [f"\tsubq\t${abs(v)}, %rsp"]
 
         case AssemblyRegister() as reg:
-            if reg == AssemblyRegister.AX:
-                return ["%eax"]
-            elif reg == AssemblyRegister.R10:
-                return ["%r10d"]
-            elif reg == AssemblyRegister.R11:
-                return ["%r11d"]
-            elif reg == AssemblyRegister.DX:
-                return ["%edx"]
+            return [_emit_register(reg, byte=False)]
 
         case AssemblyStack(offset):
             return [f"{offset}(%rbp)"]
@@ -109,7 +118,10 @@ def emit_assembly(node: AssemblyProgram | AssemblyFunction) -> List[str]:
 
         case AssemblySetConditionCode(cond_code, operand):
             suffix = CONDITION_CODE_SUFFIXES[cond_code]
-            operand_assembly = emit_assembly(operand)[0]
+            if isinstance(operand, AssemblyRegister):
+                operand_assembly = _emit_register(operand, byte=True)
+            else:
+                operand_assembly = emit_assembly(operand)[0]
             return [f"\tset{suffix}\t{operand_assembly}"]
 
         case AssemblyLabel(label):

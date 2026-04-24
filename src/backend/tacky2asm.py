@@ -88,7 +88,6 @@ def _visit_binary(node: TACKYBinaryOp) -> List:
             AssemblyIDiv(s2),
             AssemblyMov(AssemblyRegister.DX, dst),
         ]
-    # Here maybe?
     if op in _CMP_CC:
         return [
             AssemblyCompare(s2, s1),
@@ -234,6 +233,9 @@ def _replace_pseudoregisters(assembly_func: AssemblyFunction) -> AssemblyFunctio
                         )
                     )
                     new_instructions.append(AssemblyCompare(AssemblyRegister.R11, _stackify(o1, assembly_func.offsets)))
+
+            case AssemblySetConditionCode(cond_code, operand):
+                new_instructions.append(AssemblySetConditionCode(cond_code, _stackify(operand, assembly_func.offsets)))
 
             case _:
                 new_instructions.append(instruction)
