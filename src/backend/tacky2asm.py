@@ -1,24 +1,7 @@
 from typing import Any, List, TypeAlias, cast
 
 from src.backend.assembly_ir import *
-from src.middle.tacky_ir import (
-    TACKYBinaryOp,
-    TACKYBinaryOpType,
-    TACKYConstant,
-    TACKYCopy,
-    TACKYFunction,
-    TACKYInstruction,
-    TACKYJump,
-    TACKYJumpIfNotZero,
-    TACKYJumpIfZero,
-    TACKYLabel,
-    TACKYProgram,
-    TACKYReturn,
-    TACKYUnaryOp,
-    TACKYUnaryOpType,
-    TACKYValue,
-    TACKYVariable,
-)
+from src.middle.tacky_ir import *
 
 _ALU_BINOPS = {
     TACKYBinaryOpType.ADD: AssemblyBinaryOpType.ADD,
@@ -73,7 +56,7 @@ def _visit_unary(node: TACKYUnaryOp) -> List:
     return [mov, u]
 
 
-def _emit_alu(s1, s2, dst, op_type) -> list:
+def _emit_alu(s1, s2, dst, op_type) -> List:
     """dst = s1 <op> s2"""
     return [
         AssemblyMov(s1, dst),
@@ -81,16 +64,7 @@ def _emit_alu(s1, s2, dst, op_type) -> list:
     ]
 
 
-def _emit_compare(s1, s2, dst, cc) -> list:
-    """dst = (s1 ? s2) -> 0/1 via setcc"""
-    return [
-        AssemblyCompare(s2, s1),
-        AssemblyMov(AssemblyImmediate(0), dst),
-        AssemblySetConditionCode(cc, dst),
-    ]
-
-
-def _visit_binary(node: TACKYBinaryOp) -> list:
+def _visit_binary(node: TACKYBinaryOp) -> List:
     s1 = _visit_value(node.source_1)
     s2 = _visit_value(node.source_2)
     dst = AssemblyPseudoRegister(node.destination.identifier)
@@ -114,11 +88,15 @@ def _visit_binary(node: TACKYBinaryOp) -> list:
             AssemblyIDiv(s2),
             AssemblyMov(AssemblyRegister.DX, dst),
         ]
-# Here maybe?
+    # Here maybe?
     if op in _CMP_CC:
-        return _emit_compare(s1, s2, dst, _CMP_CC[op])
+        return [
+            AssemblyCompare(s2, s1),
+            AssemblyMov(AssemblyImmediate(0), dst),
+            AssemblySetConditionCode(_CMP_CC[op], dst),
+        ]
 
-    raise NotImplementedError(f"No visit logic for {op!r}")
+    raise NotImplementedError(f"No visit logic in _visit_binary: {op}")
 
 
 def _visit_return(tacky_return: TACKYReturn) -> List[AssemblyMov | AssemblyRet]:
@@ -147,6 +125,9 @@ def _visit_jump(
         case TACKYJump(target):
             return [AssemblyJump(target)]
 
+        case _:
+            raise NotImplementedError(f"No visit logic for {type(tacky_jump).__name__}")
+
 
 def _visit_copy(tacky_copy: TACKYCopy) -> List:
     return [AssemblyMov(_visit_value(tacky_copy.src), _visit_value(tacky_copy.dst))]
@@ -163,10 +144,9 @@ def _visit_instruction(tacky_instr: TACKYInstruction) -> List:
         return _visit_return(tacky_instr)
     elif isinstance(tacky_instr, TACKYBinaryOp):
         return _visit_binary(tacky_instr)
-    elif (
-        isinstance(tacky_instr, TACKYJumpIfZero)
-        or isinstance(tacky_instr, TACKYJumpIfNotZero)
-        or isinstance(tacky_instr, TACKYJump)
+    elif isinstance(
+        tacky_instr,
+        (TACKYJumpIfZero, TACKYJumpIfNotZero, TACKYJump),
     ):
         return _visit_jump(tacky_instr)
     elif isinstance(tacky_instr, TACKYCopy):
@@ -174,7 +154,7 @@ def _visit_instruction(tacky_instr: TACKYInstruction) -> List:
     elif isinstance(tacky_instr, TACKYLabel):
         return _visit_label(tacky_instr)
     else:
-        raise NotImplementedError(f"No visit logic for {type(tacky_instr).__name__}")
+        raise NotImplementedError(f"No visit logic in _visit_instruction: {type(tacky_instr).__name__}")
 
 
 def _visit_function(tacky_func: TACKYFunction) -> AssemblyFunction:
@@ -204,33 +184,61 @@ def _stackify(operand: Operand, offsets: OffsetAllocator) -> Operand:
 
 
 def _replace_pseudoregisters(assembly_func: AssemblyFunction) -> AssemblyFunction:
-    for i, instruction in enumerate(assembly_func.instructions):
+    new_instructions: List[Any] = []
+
+    for instruction in assembly_func.instructions:
         match instruction:
             case AssemblyMov(e, r):
-                assembly_func.instructions[i] = AssemblyMov(
-                    _stackify(e, assembly_func.offsets),
-                    _stackify(r, assembly_func.offsets),
+                new_instructions.append(
+                    AssemblyMov(
+                        _stackify(e, assembly_func.offsets),
+                        _stackify(r, assembly_func.offsets),
+                    )
                 )
 
             case AssemblyUnary(op, o):
                 if isinstance(o, AssemblyPseudoRegister):
-                    assembly_func.instructions[i] = AssemblyUnary(op, _stackify(o, assembly_func.offsets))
+                    new_instructions.append(AssemblyUnary(op, _stackify(o, assembly_func.offsets)))
+                else:
+                    new_instructions.append(instruction)
 
             case AssemblyBinaryOp(op, o1, o2):
-                assembly_func.instructions[i] = AssemblyBinaryOp(
-                    op,
-                    _stackify(o1, assembly_func.offsets),
-                    _stackify(o2, assembly_func.offsets),
+                new_instructions.append(
+                    AssemblyBinaryOp(
+                        op,
+                        _stackify(o1, assembly_func.offsets),
+                        _stackify(o2, assembly_func.offsets),
+                    )
                 )
 
             case AssemblyIDiv(o1):
                 if isinstance(o1, AssemblyPseudoRegister):
-                    assembly_func.instructions[i] = AssemblyIDiv(_stackify(o1, assembly_func.offsets))
+                    new_instructions.append(AssemblyIDiv(_stackify(o1, assembly_func.offsets)))
+                else:
+                    new_instructions.append(instruction)
+
+            case AssemblyCompare(o1, o2):
+                if isinstance(o1, AssemblyPseudoRegister) and isinstance(o2, AssemblyPseudoRegister):
+                    new_instructions.append(
+                        AssemblyMov(
+                            _stackify(o1, assembly_func.offsets),
+                            AssemblyRegister.R10,
+                        )
+                    )
+                    new_instructions.append(AssemblyCompare(AssemblyRegister.R10, _stackify(o2, assembly_func.offsets)))
+                elif isinstance(o2, AssemblyImmediate):
+                    new_instructions.append(
+                        AssemblyMov(
+                            AssemblyImmediate(o2.value),
+                            AssemblyRegister.R11,
+                        )
+                    )
+                    new_instructions.append(AssemblyCompare(AssemblyRegister.R11, _stackify(o1, assembly_func.offsets)))
 
             case _:
-                continue
+                new_instructions.append(instruction)
 
-    return assembly_func
+    return AssemblyFunction(assembly_func.name, new_instructions, assembly_func.offsets)
 
 
 def _is_mem(x: Operand) -> bool:
@@ -243,45 +251,45 @@ def _is_imm(x: Operand) -> bool:
 
 def _instruction_fixup(assembly_func: AssemblyFunction) -> AssemblyFunction:
     frame_size = ((assembly_func.offsets.max_offset + 15) // 16) * 16  # Need to keep the stack frame a multiple of 16
-    instrs: List[Any] = [AssemblyAllocateStack(frame_size)]
+    new_instructions: List[Any] = [AssemblyAllocateStack(frame_size)]
 
-    for ins in assembly_func.instructions:
-        match ins:
+    for instruction in assembly_func.instructions:
+        match instruction:
 
             case AssemblyMov(AssemblyStack(src_off), AssemblyStack(dst_off)):
-                instrs.append(AssemblyMov(AssemblyStack(src_off), AssemblyRegister.R10))
-                instrs.append(AssemblyMov(AssemblyRegister.R10, AssemblyStack(dst_off)))
+                new_instructions.append(AssemblyMov(AssemblyStack(src_off), AssemblyRegister.R10))
+                new_instructions.append(AssemblyMov(AssemblyRegister.R10, AssemblyStack(dst_off)))
 
             case AssemblyIDiv(op) if _is_imm(op):
-                instrs.append(AssemblyMov(cast(AssemblyImmediate, op), AssemblyRegister.R10))
-                instrs.append(AssemblyIDiv(AssemblyRegister.R10))
+                new_instructions.append(AssemblyMov(cast(AssemblyImmediate, op), AssemblyRegister.R10))
+                new_instructions.append(AssemblyIDiv(AssemblyRegister.R10))
 
             case AssemblyBinaryOp(op, src, dst):
                 if op == AssemblyBinaryOpType.MULTIPLY:
                     if _is_mem(dst):
                         dst_off = cast(AssemblyStack, dst).offset
-                        instrs.append(AssemblyMov(AssemblyStack(dst_off), AssemblyRegister.R11))
+                        new_instructions.append(AssemblyMov(AssemblyStack(dst_off), AssemblyRegister.R11))
 
                         fixed_src: Operand
                         if _is_mem(src):
-                            instrs.append(AssemblyMov(cast(AssemblyStack, src), AssemblyRegister.R10))
+                            new_instructions.append(AssemblyMov(cast(AssemblyStack, src), AssemblyRegister.R10))
                             fixed_src = AssemblyRegister.R10
                         else:
                             fixed_src = src
 
-                        instrs.append(
+                        new_instructions.append(
                             AssemblyBinaryOp(
                                 AssemblyBinaryOpType.MULTIPLY,
                                 fixed_src,
                                 AssemblyRegister.R11,
                             )
                         )
-                        instrs.append(AssemblyMov(AssemblyRegister.R11, AssemblyStack(dst_off)))
+                        new_instructions.append(AssemblyMov(AssemblyRegister.R11, AssemblyStack(dst_off)))
 
                     else:
                         if _is_mem(src) and _is_mem(dst):
-                            instrs.append(AssemblyMov(cast(AssemblyStack, src), AssemblyRegister.R10))
-                            instrs.append(
+                            new_instructions.append(AssemblyMov(cast(AssemblyStack, src), AssemblyRegister.R10))
+                            new_instructions.append(
                                 AssemblyBinaryOp(
                                     AssemblyBinaryOpType.MULTIPLY,
                                     AssemblyRegister.R10,
@@ -289,26 +297,26 @@ def _instruction_fixup(assembly_func: AssemblyFunction) -> AssemblyFunction:
                                 )
                             )
                         else:
-                            instrs.append(ins)
+                            new_instructions.append(instruction)
 
                 elif op == AssemblyBinaryOpType.ADD or op == AssemblyBinaryOpType.SUBTRACT:
                     if _is_mem(src) and _is_mem(dst):
-                        instrs.append(AssemblyMov(cast(AssemblyStack, src), AssemblyRegister.R10))
-                        instrs.append(AssemblyBinaryOp(op, AssemblyRegister.R10, dst))
+                        new_instructions.append(AssemblyMov(cast(AssemblyStack, src), AssemblyRegister.R10))
+                        new_instructions.append(AssemblyBinaryOp(op, AssemblyRegister.R10, dst))
                     else:
-                        instrs.append(ins)
+                        new_instructions.append(instruction)
 
                 else:
                     if _is_mem(src) and _is_mem(dst):
-                        instrs.append(AssemblyMov(cast(AssemblyStack, src), AssemblyRegister.R10))
-                        instrs.append(AssemblyBinaryOp(op, AssemblyRegister.R10, dst))
+                        new_instructions.append(AssemblyMov(cast(AssemblyStack, src), AssemblyRegister.R10))
+                        new_instructions.append(AssemblyBinaryOp(op, AssemblyRegister.R10, dst))
                     else:
-                        instrs.append(ins)
+                        new_instructions.append(instruction)
 
             case _:
-                instrs.append(ins)
+                new_instructions.append(instruction)
 
-    return AssemblyFunction(assembly_func.name, instrs, assembly_func.offsets)
+    return AssemblyFunction(assembly_func.name, new_instructions, assembly_func.offsets)
 
 
 def convert_TACKY_to_assembly(tacky_prog: TACKYProgram) -> AssemblyProgram:

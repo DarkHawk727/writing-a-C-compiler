@@ -1,33 +1,8 @@
 from itertools import count
 from typing import Any, Dict, List
 
-from src.frontend.ast_ir import (
-    BinaryOp,
-    BinaryOpType,
-    Constant,
-    Function,
-    Program,
-    UnaryOp,
-    UnaryOpType,
-)
-from src.middle.tacky_ir import (
-    TACKYBinaryOp,
-    TACKYBinaryOpType,
-    TACKYConstant,
-    TACKYCopy,
-    TACKYFunction,
-    TACKYInstruction,
-    TACKYJump,
-    TACKYJumpIfNotZero,
-    TACKYJumpIfZero,
-    TACKYLabel,
-    TACKYProgram,
-    TACKYReturn,
-    TACKYUnaryOp,
-    TACKYUnaryOpType,
-    TACKYValue,
-    TACKYVariable,
-)
+from src.frontend.ast_ir import *
+from src.middle.tacky_ir import *
 
 _temp_counter = count(0)
 _label_counter = count(0)

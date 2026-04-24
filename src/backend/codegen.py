@@ -1,27 +1,6 @@
 from typing import List
 
-from src.backend.assembly_ir import (
-    AssemblyAllocateStack,
-    AssemblyBinaryOp,
-    AssemblyBinaryOpType,
-    AssemblyCdq,
-    AssemblyCompare,
-    AssemblyConditionCode,
-    AssemblyFunction,
-    AssemblyIDiv,
-    AssemblyImmediate,
-    AssemblyJump,
-    AssemblyJumpConditionCode,
-    AssemblyLabel,
-    AssemblyMov,
-    AssemblyProgram,
-    AssemblyRegister,
-    AssemblyRet,
-    AssemblySetConditionCode,
-    AssemblyStack,
-    AssemblyUnary,
-    AssemblyUnaryOpType,
-)
+from src.backend.assembly_ir import *
 
 CONDITION_CODE_SUFFIXES = {
     AssemblyConditionCode.E: "e",

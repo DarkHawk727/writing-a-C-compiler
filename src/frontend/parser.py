@@ -2,18 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from src.frontend.ast_ir import (
-    BinaryOp,
-    BinaryOpType,
-    Constant,
-    Expression,
-    Function,
-    Identifier,
-    Program,
-    Return,
-    UnaryOp,
-    UnaryOpType,
-)
+from src.frontend.ast_ir import *
 from src.frontend.tokens import Token, TokenType
 
 
@@ -127,9 +116,7 @@ def _precedence(tok: Token) -> int:
         ):
             return 35
 
-        case (
-            TokenType.VERTICAL_BAR | TokenType.DOUBLE_EQUAL_SIGNS | TokenType.NOT_EQUAL
-        ):
+        case TokenType.VERTICAL_BAR | TokenType.DOUBLE_EQUAL_SIGNS | TokenType.NOT_EQUAL:
             return 30
 
         case TokenType.DOUBLE_AMPERSAND:
