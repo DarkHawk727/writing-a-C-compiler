@@ -217,34 +217,12 @@ def _replace_pseudoregisters(assembly_func: AssemblyFunction) -> AssemblyFunctio
                     new_instructions.append(instruction)
 
             case AssemblyCompare(o1, o2):
-                if isinstance(o1, AssemblyPseudoRegister) and isinstance(o2, AssemblyPseudoRegister):
-                    new_instructions.append(
-                        AssemblyMov(
-                            _stackify(o1, assembly_func.offsets),
-                            AssemblyRegister.R10,
-                        )
+                new_instructions.append(
+                    AssemblyCompare(
+                        _stackify(o1, assembly_func.offsets),
+                        _stackify(o2, assembly_func.offsets),
                     )
-                    new_instructions.append(AssemblyCompare(AssemblyRegister.R10, _stackify(o2, assembly_func.offsets)))
-                elif isinstance(o2, AssemblyImmediate):
-                    new_instructions.append(
-                        AssemblyMov(
-                            AssemblyImmediate(o2.value),
-                            AssemblyRegister.R11,
-                        )
-                    )
-                    new_instructions.append(
-                        AssemblyCompare(
-                            AssemblyRegister.R11,
-                            _stackify(o1, assembly_func.offsets),
-                        )
-                    )
-                else:
-                    new_instructions.append(
-                        AssemblyCompare(
-                            _stackify(o1, assembly_func.offsets),
-                            _stackify(o2, assembly_func.offsets),
-                        )
-                    )
+                )
 
             case AssemblySetConditionCode(cond_code, operand):
                 new_instructions.append(AssemblySetConditionCode(cond_code, _stackify(operand, assembly_func.offsets)))
@@ -326,6 +304,18 @@ def _instruction_fixup(assembly_func: AssemblyFunction) -> AssemblyFunction:
                         new_instructions.append(AssemblyBinaryOp(op, AssemblyRegister.R10, dst))
                     else:
                         new_instructions.append(instruction)
+
+            case AssemblyCompare(src, dst):
+                if _is_mem(src) and _is_mem(dst):
+                    # cmp cannot take memory operands on both sides.
+                    new_instructions.append(AssemblyMov(cast(AssemblyStack, src), AssemblyRegister.R10))
+                    new_instructions.append(AssemblyCompare(AssemblyRegister.R10, dst))
+                elif _is_imm(dst):
+                    # cmp cannot take an immediate as the second operand.
+                    new_instructions.append(AssemblyMov(cast(AssemblyImmediate, dst), AssemblyRegister.R11))
+                    new_instructions.append(AssemblyCompare(src, AssemblyRegister.R11))
+                else:
+                    new_instructions.append(instruction)
 
             case _:
                 new_instructions.append(instruction)
