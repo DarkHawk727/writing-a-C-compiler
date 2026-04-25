@@ -34,6 +34,7 @@ class TokenType(Enum):
     GREATER_THAN = auto()
     LESS_THAN_OR_EQUAL = auto()
     GREATER_THAN_OR_EQUAL = auto()
+    ASSIGNMENT = auto()
 
 
 Token = NamedTuple("Token", [("type", TokenType), ("value", "str")])

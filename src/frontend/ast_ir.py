@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import NamedTuple
+from typing import List, NamedTuple
+
 
 class Constant(NamedTuple):
     val: int
@@ -13,11 +14,6 @@ class Identifier(NamedTuple):
 
 class Return(NamedTuple):
     return_val: Expression
-
-
-class Function(NamedTuple):
-    name: Identifier
-    body: Return
 
 
 class Program(NamedTuple):
@@ -62,4 +58,32 @@ class BinaryOp(NamedTuple):
     r_exp: Expression
 
 
-Expression = Constant | UnaryOp | BinaryOp
+class Variable(NamedTuple):
+    identifier: str
+
+
+class Assignment(NamedTuple):
+    lhs: Expression
+    rhs: Expression
+
+
+class NULL(NamedTuple):
+    pass
+
+
+Expression = Constant | Variable | UnaryOp | BinaryOp | Assignment
+
+Statement = Return | Expression | NULL
+
+
+class Declaration(NamedTuple):
+    identifier: Identifier
+    initializer: Expression | NULL
+
+
+BlockItem = Statement | Declaration
+
+
+class Function(NamedTuple):
+    name: Identifier
+    body: List[BlockItem]

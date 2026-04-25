@@ -20,14 +20,16 @@ from src.backend.tacky2asm import convert_TACKY_to_assembly
 from src.frontend.lexer import lex
 from src.frontend.parser import parse_program
 from src.middle.tacky import convert_AST_to_TACKY
-from src.utils.viz import ast_to_mermaid, pretty_print_tree, pretty_tacky
+from src.utils.pretty import pretty_print_tree, pretty_tacky
+from src.utils.viz import GRAPHICAL_FORMATS, ast_to_mermaid, write_visualization
+from src.semantic.resolver import resolve_program
 
 ROOT = Path(__file__).resolve().parent
 
 STAGE_FLAGS = {
     "--lex": "lex",
     "--parse": "parse",
-    "--validate": "parse",
+    "--validate": "validate",
     "--tacky": "tacky",
     "--codegen": "codegen",
 }
@@ -39,14 +41,14 @@ IGNORED_FLAGS = {
     "--eliminate-dead-stores",
 }
 
-VALID_STAGES = {"lex", "parse", "tacky", "codegen", "compile", "all"}
-VIZ_MODES = {"pretty", "mermaid"}
+VALID_STAGES = {"lex", "parse", "validate", "tacky", "codegen", "compile", "all"}
+VIZ_MODES = {"pretty", "mermaid", *GRAPHICAL_FORMATS}
 
 
 def usage() -> int:
     print(
         "usage: mycc [--lex|--parse|--validate|--tacky|--codegen] "
-        "[--stage STAGE] [--viz pretty|mermaid] [-S|-c] file.c"
+        "[--stage STAGE] [--viz pretty|mermaid|svg|html|dot] [-S|-c] file.c"
     )
     return 2
 
@@ -67,6 +69,17 @@ def render(obj, viz_mode: str) -> str:
 def print_section(title: str, body: str) -> None:
     print(f"\n=== {title} ===")
     print(body)
+
+
+def write_viz_section(title: str, obj, source: Path, stage: str, viz_mode: str) -> None:
+    output_path = source.with_suffix(f".{stage}.{viz_mode}")
+    try:
+        path = write_visualization(obj, output_path, viz_mode)
+    except Exception as exc:
+        print_section(title, f"Unable to write visualization: {exc}")
+        return
+
+    print_section(title, f"Wrote {viz_mode.upper()} visualization to {path}")
 
 
 def normalize_assembly_for_host(assembly_path: Path) -> None:
@@ -104,6 +117,12 @@ def run_pipeline(source: Path, stage: str, viz_mode: str) -> int:
         if ast is None:
             ast = parse_program(get_tokens())
         return ast
+    
+    def get_resolved_ast():
+        nonlocal ast
+        if ast is None:
+            ast = parse_program(get_tokens())
+        return resolve_program(ast)
 
     def get_tacky():
         nonlocal tacky
@@ -122,7 +141,17 @@ def run_pipeline(source: Path, stage: str, viz_mode: str) -> int:
         return 0
 
     if stage == "parse":
-        print_section("PARSE", render(get_ast(), viz_mode))
+        if viz_mode in GRAPHICAL_FORMATS:
+            write_viz_section("PARSE", get_ast(), source, "parse", viz_mode)
+        else:
+            print_section("PARSE", render(get_ast(), viz_mode))
+        return 0
+
+    if stage == "validate":
+        if viz_mode in GRAPHICAL_FORMATS:
+            write_viz_section("VALIDATE (Resolved AST)", get_resolved_ast(), source, "validate", viz_mode)
+        else:
+            print_section("VALIDATE (Resolved AST)", render(get_resolved_ast(), viz_mode))
         return 0
 
     if stage == "tacky":
@@ -130,14 +159,23 @@ def run_pipeline(source: Path, stage: str, viz_mode: str) -> int:
         return 0
 
     if stage == "codegen":
-        print_section("CODEGEN (Assembly IR)", render(get_asm_ir(), viz_mode))
+        if viz_mode in GRAPHICAL_FORMATS:
+            write_viz_section("CODEGEN (Assembly IR)", get_asm_ir(), source, "codegen", viz_mode)
+        else:
+            print_section("CODEGEN (Assembly IR)", render(get_asm_ir(), viz_mode))
         return 0
 
     if stage == "all":
         print_section("LEX", "\n".join(map(str, get_tokens())))
-        print_section("PARSE", render(get_ast(), viz_mode))
+        if viz_mode in GRAPHICAL_FORMATS:
+            write_viz_section("PARSE", get_ast(), source, "parse", viz_mode)
+        else:
+            print_section("PARSE", render(get_ast(), viz_mode))
         print_section("TACKY", pretty_tacky(get_tacky()))
-        print_section("CODEGEN (Assembly IR)", render(get_asm_ir(), viz_mode))
+        if viz_mode in GRAPHICAL_FORMATS:
+            write_viz_section("CODEGEN (Assembly IR)", get_asm_ir(), source, "codegen", viz_mode)
+        else:
+            print_section("CODEGEN (Assembly IR)", render(get_asm_ir(), viz_mode))
         return 0
 
     if stage == "compile":

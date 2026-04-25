@@ -41,13 +41,13 @@ flowchart TD
 
 ## Limitations
 
-- Can only compile the simplest programs (just returns a single number)
-- Doesn't suppoort preprocessor directives, functions, variables, or any of the standard library.
+- Doesn't suppoort preprocessor directives.
+- Doesn't support `typedef` as this compiler parses the entire program before resolving variables.
 
 ## Usage
 
 ```text
-usage: mycc [--lex|--parse|--validate|--tacky|--codegen] [--stage STAGE] [--viz pretty|mermaid] [-S|-c] file.c
+usage: mycc [--lex|--parse|--validate|--tacky|--codegen] [--stage STAGE] [--viz pretty|mermaid|svg|html|dot] [-S|-c] file.c
 
 Compiler entrypoint compatible with the book test suite
 
@@ -58,7 +58,7 @@ options:
   --lex/--parse/--validate/--tacky/--codegen
                         Run only the selected intermediate stage
   --stage STAGE          Explicit stage selector (lex|parse|tacky|codegen|compile|all)
-  --viz                  Tree visualization mode for parse/codegen output (pretty|mermaid)
+  --viz                  Tree visualization mode for parse/codegen output (pretty|mermaid|svg|html|dot)
   -S                     Stop after generating assembly (.s)
   -c                     Compile assembly to object file (.o)
 ```

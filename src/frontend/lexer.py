@@ -31,6 +31,7 @@ TOKEN_REGEXES = {
     TokenType.DOUBLE_AMPERSAND: re.compile(r"&&"),
     TokenType.DOUBLE_VERTICAL_BAR: re.compile(r"\|\|"),
     TokenType.DOUBLE_EQUAL_SIGNS: re.compile(r"=="),
+    TokenType.ASSIGNMENT: re.compile(r"="),
     TokenType.LESS_THAN_OR_EQUAL: re.compile(r"<="),
     TokenType.GREATER_THAN_OR_EQUAL: re.compile(r">="),
     TokenType.LESS_THAN: re.compile(r"<"),
